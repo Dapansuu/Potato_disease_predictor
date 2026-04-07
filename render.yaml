@@ -7,7 +7,7 @@ services:
     plan: free
 
   - type: web
-    name: potato-frontend
+    name: potato-disease-classifier
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build

@@ -18,4 +18,4 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://potato-api.onrender.com
+        value: https://potato-api-qyzk.onrender.com

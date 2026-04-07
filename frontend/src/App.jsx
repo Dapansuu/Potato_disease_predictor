@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import "./App.css";
 
+// Render/Vite backend URL
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 // ─── Translations ───────────────────────────────────────────────────────────
 const t = {
   en: {
@@ -30,9 +33,9 @@ const t = {
     errorGeneric: "Something went wrong.",
     lang: "हिन्दी",
     classes: {
-      "Early Blight":  "Early Blight",
-      "Late Blight":   "Late Blight",
-      "Healthy":       "Healthy",
+      "Early Blight": "Early Blight",
+      "Late Blight": "Late Blight",
+      Healthy: "Healthy",
     },
   },
   hi: {
@@ -62,9 +65,9 @@ const t = {
     errorGeneric: "कुछ गलत हो गया।",
     lang: "English",
     classes: {
-      "Early Blight":  "अर्ली ब्लाइट (आरंभिक झुलसा)",
-      "Late Blight":   "लेट ब्लाइट (पछेती झुलसा)",
-      "Healthy":       "स्वस्थ पत्ती",
+      "Early Blight": "अर्ली ब्लाइट (आरंभिक झुलसा)",
+      "Late Blight": "लेट ब्लाइट (पछेती झुलसा)",
+      Healthy: "स्वस्थ पत्ती",
     },
   },
 };
@@ -115,10 +118,16 @@ function App() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     if (!file.type.startsWith("image/")) {
       setError(tx.errorImage);
       return;
     }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setResult(null);
@@ -130,6 +139,7 @@ function App() {
       setError(tx.errorNoFile);
       return;
     }
+
     setLoading(true);
     setError("");
     setResult(null);
@@ -138,14 +148,22 @@ function App() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch("http://localhost:8000/predict", {
+      const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) throw new Error(tx.errorFetch);
+      let data = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.detail || tx.errorFetch);
+      }
+
       setResult(data);
     } catch (err) {
       setError(err.message || tx.errorGeneric);
@@ -155,6 +173,9 @@ function App() {
   };
 
   const handleReset = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl("");
     setResult(null);
@@ -171,19 +192,23 @@ function App() {
   return (
     <div className="page">
       <div className="container">
-        {/* ── Left Panel ─────────────────────────────────────── */}
         <div className="left-panel">
-          {/* Language Toggle */}
           <div className="lang-toggle">
             <button
               className={`lang-btn ${lang === "en" ? "active" : ""}`}
-              onClick={() => { setLang("en"); setError(""); }}
+              onClick={() => {
+                setLang("en");
+                setError("");
+              }}
             >
               English
             </button>
             <button
               className={`lang-btn ${lang === "hi" ? "active" : ""}`}
-              onClick={() => { setLang("hi"); setError(""); }}
+              onClick={() => {
+                setLang("hi");
+                setError("");
+              }}
             >
               हिन्दी
             </button>
@@ -233,9 +258,7 @@ function App() {
           {error && <div className="error-box">{error}</div>}
         </div>
 
-        {/* ── Right Panel ────────────────────────────────────── */}
         <div className="right-panel">
-          {/* Preview Card */}
           <div className="preview-card">
             <h2>{tx.previewTitle}</h2>
             {previewUrl ? (
@@ -252,7 +275,6 @@ function App() {
             )}
           </div>
 
-          {/* Result Card */}
           <div className="result-card">
             <h2>{tx.resultTitle}</h2>
 

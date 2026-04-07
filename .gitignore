@@ -1,5 +1,6 @@
 /dataset
 potato_diesase_2.ipynb
-/models
-/models
 /serving_model
+key.txt
+models/
+test.py

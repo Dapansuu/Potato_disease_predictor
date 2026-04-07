@@ -4,26 +4,24 @@ import numpy as np
 import uvicorn
 from io import BytesIO
 from PIL import Image
-import requests
+import tensorflow as tf
+import os
+
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://potato-disease-api.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-endpoint = "http://localhost:8501/v1/models/potato_model:predict"
+model = tf.keras.models.load_model("potato_model.keras")
 
 class_names = ["Potato___Early_blight", "Potato___Late_blight", "Potato___healthy"]
 
-
-@app.get("/ping")
-async def ping():
-    return "hello world"
 
 
 def read_file_as_image(data) -> np.ndarray:
@@ -37,14 +35,7 @@ async def predict(file: UploadFile = File(...)):
     image = read_file_as_image(await file.read())
     image_batch = np.expand_dims(image, axis=0)
 
-    json_data = {
-        "instances": image_batch.tolist()
-    }
-
-    response = requests.post(endpoint, json=json_data)
-    response.raise_for_status()
-
-    prediction = np.array(response.json()["predictions"]).squeeze()
+    prediction = model.predict(image_batch, verbose=0)[0]
 
     predicted_class = class_names[np.argmax(prediction)]
     confidence = float(np.max(prediction))
@@ -57,4 +48,5 @@ async def predict(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
